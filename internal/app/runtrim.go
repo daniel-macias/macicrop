@@ -4,11 +4,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
+
+	"github.com/daniel-macias/macicrop/internal/crop"
+	"github.com/daniel-macias/macicrop/internal/fs"
 )
 
 type TrimStats struct {
-	FoundPNGs int
+	Found   int
+	Trimmed int
+	Empty   int
+	Skipped int
+	Errors  int
 }
 
 func RunTrim(opts TrimOptions) (TrimStats, error) {
@@ -32,14 +38,53 @@ func RunTrim(opts TrimOptions) (TrimStats, error) {
 	}
 
 	stats := TrimStats{}
+
 	for _, e := range entries {
 		if e.IsDir() {
 			continue
 		}
+
 		name := e.Name()
-		if strings.ToLower(filepath.Ext(name)) == ".png" {
-			stats.FoundPNGs++
+		if !fs.IsPNG(name) {
+			continue
 		}
+
+		stats.Found++
+
+		outName, err := fs.OutputName(name, opts.Suffix)
+		if err != nil {
+			// should never happen maybe TODO test this is for safety
+			stats.Errors++
+			fmt.Printf("error   %s (%v)\n", name, err)
+			continue
+		}
+
+		inPath := filepath.Join(opts.InputDir, name)
+		outPath := filepath.Join(opts.OutputDir, outName)
+
+		// Collision handling
+		exists, err := fs.Exists(outPath)
+		if err != nil {
+			stats.Errors++
+			fmt.Printf("error   %s (stat output: %v)\n", name, err)
+			continue
+		}
+
+		if exists && !opts.Overwrite {
+			stats.Skipped++
+			fmt.Printf("skip    %s (exists)\n", outName)
+			continue
+		}
+
+		// Testing copying the files only
+		if err := crop.CopyFile(inPath, outPath); err != nil {
+			stats.Errors++
+			fmt.Printf("error   %s (%v)\n", name, err)
+			continue
+		}
+
+		stats.Trimmed++
+		fmt.Printf("copied  %s -> %s\n", name, outName)
 	}
 
 	return stats, nil

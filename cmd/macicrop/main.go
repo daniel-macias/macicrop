@@ -25,7 +25,13 @@ func main() {
 			fmt.Println("error:", err)
 			os.Exit(1)
 		}
-		fmt.Printf("found %d pngs\n", stats.FoundPNGs)
+
+		fmt.Printf("\ndone: %d found, %d processed, %d skipped, %d errors\n",
+			stats.Found, stats.Trimmed, stats.Skipped, stats.Errors)
+
+		if stats.Errors > 0 {
+			os.Exit(1)
+		}
 	default:
 		fmt.Printf("unknown command: %s\n\n", os.Args[1])
 		printUsage()
