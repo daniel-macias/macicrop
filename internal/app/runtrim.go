@@ -76,15 +76,38 @@ func RunTrim(opts TrimOptions) (TrimStats, error) {
 			continue
 		}
 
-		// Testing copying the files only
-		if err := crop.CopyFile(inPath, outPath); err != nil {
+		wasEmpty, oldBounds, newBounds, err := crop.CropPNGToAlphaBounds(inPath, outPath, opts.KeepEmpty)
+		if err != nil {
 			stats.Errors++
 			fmt.Printf("error   %s (%v)\n", name, err)
 			continue
 		}
 
+		if wasEmpty {
+			if opts.KeepEmpty {
+				stats.Empty++
+				fmt.Printf("empty   %s -> %s  (%dx%d -> 1x1)\n",
+					name,
+					outName,
+					oldBounds.Dx(),
+					oldBounds.Dy(),
+				)
+			} else {
+				stats.Skipped++
+				fmt.Printf("skip    %s (fully transparent)\n", name)
+			}
+			continue
+		}
+
 		stats.Trimmed++
-		fmt.Printf("copied  %s -> %s\n", name, outName)
+		fmt.Printf("trimmed %s -> %s  (%dx%d -> %dx%d)\n",
+			name,
+			outName,
+			oldBounds.Dx(),
+			oldBounds.Dy(),
+			newBounds.Dx(),
+			newBounds.Dy(),
+		)
 	}
 
 	return stats, nil

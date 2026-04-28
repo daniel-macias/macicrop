@@ -26,8 +26,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		fmt.Printf("\ndone: %d found, %d processed, %d skipped, %d errors\n",
-			stats.Found, stats.Trimmed, stats.Skipped, stats.Errors)
+		fmt.Printf("\ndone: %d found, %d trimmed, %d empty, %d skipped, %d errors\n",
+			stats.Found, stats.Trimmed, stats.Empty, stats.Skipped, stats.Errors)
 
 		if stats.Errors > 0 {
 			os.Exit(1)
